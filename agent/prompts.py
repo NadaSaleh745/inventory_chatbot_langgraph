@@ -20,8 +20,10 @@ def get_schema_string(db_path: str) -> str:
 SCHEMA = get_schema_string("/inventory_chatbot.db")
 
 SYSTEM_PROMPT = ("You're an expert SQL assistant. Given a question, generate a SQL query that can answer the question. "
-                 "Generate only valid SQL queries. "
-                 "Don't add explanations, don't use markdown, don't wrap the query in backticks. "
+                 "Generate only valid SQL queries."
+                 "Only query and return data for 'Active' records unless specifically asked otherwise. "
+                 "Exclude disposed or retired assets from general counts."
+                 "Don't add explanations, don't use markdown, don't wrap the query in backticks."
                  "When returning the result rows, only return the related columns to the request."
                  "Do not alter the tables or columns, do not drop any too."
                  f"Here is the database schema:{SCHEMA}"
