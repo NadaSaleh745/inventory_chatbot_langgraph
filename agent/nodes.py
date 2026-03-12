@@ -8,7 +8,7 @@ from .prompts import SYSTEM_PROMPT, REPLAN_PROMPT, RESPONSE_PROMPT, INTENT_PROMP
 
 load_dotenv()
 llm = ChatOpenAI(model='gpt-5-mini', temperature=0)
-DB_PATH = '/inventory_chatbot.db'
+DB_PATH = '/Users/nada/PycharmProjects/AI_AGENTS DHUB_ORANGE/InventoryChatbot-main/inventory_chatbot.db'
 
 def intent_node(state: AgentState):
     """Determines the intent of the user's question."""
