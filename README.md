@@ -63,7 +63,7 @@ The main function contains the code of the loop to run the bot and print the mes
 
 Once the program is run, the user can type the input and get the response until they type **"exit"**.
 
-## NEO4J Knowledge Graph Agent
+# NEO4J Knowledge Graph Agent
 
 ## State
 
