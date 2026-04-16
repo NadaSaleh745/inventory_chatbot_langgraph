@@ -53,6 +53,7 @@ ADD_PROMPT = ("You are a neo4j knowledge graph expert. Given a question or state
               f"Use ONLY the schema below to generate Cypher queries."
               f"{SCHEMA_PROMPT}"
               "Generate a valid Cypher query for this intent. Return ONLY the Cypher query."
+              "The conversation history is provided. Use it to resolve any pronouns or references (e.g. 'their', 'its', 'the same one')."
               """
               \nIMPORTANT INSTRUCTIONS:\n
               1. When creating nodes, ALWAYS create their required relationships as shown in the schema.\n
@@ -66,18 +67,21 @@ INQUIRE_PROMPT = ("You are a neo4j knowledge graph expert. Given a question or s
                   "can retrieve the necessary information from the knowledge graph."
                   f"Use ONLY the schema below to generate Cypher queries."
                   f"{SCHEMA_PROMPT}"
+                  "The conversation history is provided. Use it to resolve any pronouns or references (e.g. 'their', 'its', 'the same one')."
                   "Generate a valid Cypher query for this intent. Return ONLY the Cypher query.")
 
 UPDATE_PROMPT = ("You are a neo4j knowledge graph expert. Given a question or statement, generate a Cypher query that "
                  "can update the knowledge graph with the necessary information."
                  f"Use ONLY the schema below to generate Cypher queries."
                  f"{SCHEMA_PROMPT}"
+                 "The conversation history is provided. Use it to resolve any pronouns or references (e.g. 'their', 'its', 'the same one')."
                  "Generate a valid Cypher query for this intent. Return ONLY the Cypher query.")
 
 DELETE_PROMPT = ("You are a neo4j knowledge graph expert. Given a question or statement, generate a Cypher query that can "
                  "remove the necessary information from the knowledge graph."
                  f"Use ONLY the schema below to generate Cypher queries."
                  f"{SCHEMA_PROMPT}"
+                 "The conversation history is provided. Use it to resolve any pronouns or references (e.g. 'their', 'its', 'the same one')."
                  "Generate a valid Cypher query for this intent. Return ONLY the Cypher query.")
 
 

@@ -15,17 +15,21 @@ config = {
 
 def main():
     print("Hello, I'm your assistant! How can I help you today. (Type 'exit/quit' to quit.)\n")
+    conversation_history = []
     while True:
         user_input = input("You: ")
         if not user_input.strip():
             print("Please enter a valid question.")
             continue
 
-        if user_input.lower() in ["exit", "quit"]:
+        if user_input.strip().lower() in ["exit", "quit"]:
             break
 
+        new_message = HumanMessage(content=user_input)
+        conversation_history.append(new_message)
+
         state = {
-            "messages": [HumanMessage(content=user_input)],
+            "messages": conversation_history,
             "question": user_input,
             "intent": None,
             "cypher": None,
@@ -34,6 +38,8 @@ def main():
         }
 
         result = app.invoke(state, config=config)
+
+        conversation_history.append(result["messages"][-1])
 
         print("\nBot:")
         print(result["messages"][-1].content)
