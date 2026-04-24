@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KG Neo4j Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        .chat-bubble {
+            max-width: 80%;
+            border-radius: 1.5rem;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .bot-bubble {
+            background-color: #f3f4f6;
+            color: #1f2937;
+            border-bottom-left-radius: 0.25rem;
+            align-self: flex-start;
+        }
+        .user-bubble {
+            background-color: #3b82f6;
+            color: white;
+            border-bottom-right-radius: 0.25rem;
+            align-self: flex-end;
+        }
+        #chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        #chat-container::-webkit-scrollbar-thumb {
+            background-color: #d1d5db;
+            border-radius: 10px;
+        }
+        .loader {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        /* Markdown Styles */
+        .bot-bubble ul, .bot-bubble ol {
+            margin-left: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .bot-bubble ul { list-style-type: disc; }
+        .bot-bubble ol { list-style-type: decimal; }
+        .bot-bubble p { margin-bottom: 0.5rem; }
+        .bot-bubble p:last-child { margin-bottom: 0; }
+        .bot-bubble code {
+            background-color: #e5e7eb;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+        }
+        .bot-bubble pre {
+            background-color: #1f2937;
+            color: #f9fafb;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 0.5rem 0;
+        }
+        .bot-bubble pre code {
+            background-color: transparent;
+            padding: 0;
+            color: inherit;
+        }
+        .bot-bubble h1, .bot-bubble h2, .bot-bubble h3 {
+            font-weight: bold;
+            margin-top: 0.75rem;
+            margin-bottom: 0.25rem;
+        }
+        .bot-bubble strong { font-weight: 600; }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 h-screen flex flex-col font-sans antialiased">
+
+    <!-- Navbar -->
+    <header class="bg-white shadow-sm py-4 px-6 z-10">
+        <div class="max-w-4xl mx-auto flex items-center">
+            <div class="bg-blue-600 p-2 rounded-lg mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+            </div>
+            <h1 class="text-xl font-bold text-gray-800 tracking-tight">KG Inventory AI Assistant</h1>
+        </div>
+    </header>
+
+    <!-- Chat Container -->
+    <main class="flex-1 overflow-hidden relative max-w-4xl w-full mx-auto p-4 md:p-6 flex flex-col">
+        <div id="chat-container" class="flex-1 overflow-y-auto pr-2 flex flex-col space-y-4 pb-20">
+            <!-- Welcome Message -->
+            <div class="chat-bubble bot-bubble">
+                <p class="font-semibold mb-1">Hello! 👋</p>
+                <p>Welcome to the KG Inventory Assistant. I can help you with questions about your inventory, products, and more using our Knowledge Graph.</p>
+                <p class="mt-2">How can I assist you today?</p>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="absolute bottom-4 left-4 right-4 max-w-4xl mx-auto">
+            <form id="chat-form" class="bg-white rounded-2xl shadow-xl flex items-center p-2 border border-gray-200 transition-all focus-within:ring-2 focus-within:ring-blue-400">
+                <input
+                    type="text"
+                    id="user-input"
+                    placeholder="Ask about inventory items..."
+                    class="flex-1 bg-transparent border-none outline-none px-4 py-3 text-gray-700"
+                    required
+                >
+                <button
+                    type="submit"
+                    id="send-button"
+                    class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        console.log('Chat UI initialized');
+        // Base URL for the API – adjust if your server runs on a different port
+        const API_BASE = window.location.origin.startsWith('file') ? 'http://localhost:8000' : '';
+        const chatContainer = document.getElementById('chat-container');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const threadId = 'ui_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+
+        function appendMessage(role, content) {
+            const bubble = document.createElement('div');
+            bubble.className = `chat-bubble ${role}-bubble`;
+
+            const contentDiv = document.createElement('div');
+            if (role === 'bot') {
+                try {
+                    // Use marked to parse markdown for bot responses
+                    contentDiv.innerHTML = marked.parse(content);
+                } catch (e) {
+                    console.error('Markdown parsing error:', e);
+                    contentDiv.textContent = content;
+                }
+            } else {
+                contentDiv.textContent = content;
+            }
+            bubble.appendChild(contentDiv);
+
+            chatContainer.appendChild(bubble);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function showLoading() {
+            const loadingBubble = document.createElement('div');
+            loadingBubble.id = 'loading-bubble';
+            loadingBubble.className = 'chat-bubble bot-bubble flex items-center space-x-2';
+            loadingBubble.innerHTML = '<div class="loader"></div><span class="text-sm text-gray-500 italic">Thinking...</span>';
+            chatContainer.appendChild(loadingBubble);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function removeLoading() {
+            const loadingBubble = document.getElementById('loading-bubble');
+            if (loadingBubble) loadingBubble.remove();
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // Clear input and disable button
+            userInput.value = '';
+            userInput.disabled = true;
+            sendButton.disabled = true;
+
+            try {
+                // Append user message
+                appendMessage('user', message);
+                showLoading();
+
+                console.log('Sending request to /chat...');
+                const response = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ message, thread_id: threadId })
+                });
+
+                console.log('Response status:', response.status);
+                const responseText = await response.text();
+
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (parseError) {
+                    console.error('Failed to parse response as JSON. Status:', response.status, 'Body:', responseText);
+                    throw new Error(`Server returned non-JSON response (HTTP ${response.status}). Check the console for the raw response.`);
+                }
+
+                if (!response.ok) {
+                    throw new Error(data.detail || data.response || `Server error ${response.status}`);
+                }
+
+                removeLoading();
+                appendMessage('bot', data.response);
+            } catch (error) {
+                removeLoading();
+                console.error('Chat error:', error);
+                appendMessage('bot', `<span class="text-red-500">Error: ${error.message}</span>`);
+            } finally {
+                userInput.disabled = false;
+                sendButton.disabled = false;
+                userInput.focus();
+            }
+        });
+    </script>
+</body>
+</html>
