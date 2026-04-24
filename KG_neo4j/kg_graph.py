@@ -21,6 +21,9 @@ index_config: IndexConfig = {
     "distance_type": "cosine",
 }
 
+# Load .env again specifically for embeddings if needed, but it should be fine
+# OpenAIEmbeddings will look for OPENAI_API_KEY environment variable.
+
 checkpointer_cm = RedisSaver.from_conn_string(REDIS_URI)
 checkpointer = checkpointer_cm.__enter__()
 checkpointer.setup()
@@ -31,6 +34,7 @@ redis_store.setup()
 
 def intent_router(state: AgentState):
     intent = state.get("intent", "INQUIRE")
+    print(f"DEBUG ROUTER: Intent received = '{intent}' (type: {type(intent)})")
     if intent == "ADD":
         return "add"
     elif intent == "INQUIRE":
@@ -45,10 +49,13 @@ def intent_router(state: AgentState):
         return "inquire"
 
 def executor_should_continue(state: AgentState):
+    if state.get("revision_count", 0) >= 3:
+        return "synthesize"
     if state.get("error"):
         return "replan"
     else:
         return "synthesize"
+
 
 workflow = StateGraph(AgentState)
 workflow.add_node('intent', intent_node)

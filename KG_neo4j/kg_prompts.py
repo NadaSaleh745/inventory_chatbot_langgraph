@@ -69,6 +69,8 @@ INQUIRE_PROMPT = ("You are a neo4j knowledge graph expert. Given a question or s
                   f"{SCHEMA_PROMPT}"
                   "The conversation history is provided. Use it to resolve any pronouns or references (e.g. 'their', 'its', 'the same one')."
                   "Generate a valid Cypher query for this intent. Return ONLY the Cypher query."
+
+
 )
 
 UPDATE_PROMPT = ("You are a neo4j knowledge graph expert. Given a question or statement, generate a Cypher query that "

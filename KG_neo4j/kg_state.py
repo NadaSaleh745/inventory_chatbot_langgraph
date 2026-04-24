@@ -13,4 +13,5 @@ class AgentState(TypedDict):
     cypher: str
     cypher_result: str
     error: Optional[str]
+    revision_count: int
     semantic_memory: Annotated[list[str], add_memories]

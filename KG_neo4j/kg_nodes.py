@@ -7,7 +7,8 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, Base
 from neo4j import GraphDatabase
 from neo4j.time import Date, DateTime, Time, Duration
 from .kg_state import AgentState
-from .kg_prompts import INTENT_PROMPT, SYNTHESIZER_PROMPT, ADD_PROMPT, UPDATE_PROMPT, INQUIRE_PROMPT, DELETE_PROMPT, REPLAN_PROMPT
+from .kg_prompts import INTENT_PROMPT, SYNTHESIZER_PROMPT, ADD_PROMPT, UPDATE_PROMPT, INQUIRE_PROMPT, DELETE_PROMPT, \
+    REPLAN_PROMPT
 from llama_index.core import Settings
 from llama_index.llms.openai import OpenAI as LlamaOpenAI
 from dotenv import load_dotenv, find_dotenv
@@ -18,11 +19,11 @@ load_dotenv(find_dotenv())
 llm = ChatOpenAI(model='gpt-5-mini', temperature=0)
 Settings.llm = LlamaOpenAI(model='gpt-5-mini', temperature=0)
 
-
 _neo4j_driver = GraphDatabase.driver(
     os.getenv("NEO4J_URI"),
     auth=(os.getenv("NEO4J_USERNAME"), os.getenv("NEO4J_PASSWORD")),
 )
+
 
 class _AuraGraphStore:
     """Minimal Neo4j graph store compatible with Aura Free (no APOC, no routing issues)."""
@@ -68,7 +69,7 @@ def _convert_neo4j_types(obj):
         return obj
 
 
-def intent_node(state: AgentState,  config: RunnableConfig, store: BaseStore):
+def intent_node(state: AgentState, config: RunnableConfig, store: BaseStore):
     """Determines the intent of the user's question."""
     print("start intent")
     user_id = config["configurable"].get("thread_id", "default")
@@ -80,20 +81,23 @@ def intent_node(state: AgentState,  config: RunnableConfig, store: BaseStore):
     Extract intent and facts from the user message.
 
     Intent must be one of the following exactly:
+    CHITCHAT: User is just making conversation, greeting, or providing general facts/preferences without requesting a database operation.
     ADD: User explicitly requests to create/add records to the inventory database (e.g. SalesOrders, Items).
     UPDATE: User explicitly requests modifying database records.
     DELETE: User explicitly requests removing database records.
-    INQUIRE: User asks a concrete question about inventory or operations.
-    CHITCHAT: User is just making conversation, greeting, or providing general facts/preferences without requesting a database operation.
+    INQUIRE: User asks a specific question about inventory data or operations that requires querying the database.
 
-    Crucially: If the user provides a fact or instruction to remember, but does NOT explicitly tell you to create/update an inventory database record, the intent is CHITCHAT.
+    Crucially:
+    - If the user provides a fact or instruction to remember, but does NOT explicitly tell you to create/update an inventory database record, the intent is CHITCHAT.
+    - INQUIRE should only be used when the user is clearly asking for specific inventory information from the database.
+
 
     Also extract facts if they exist:
     - Preferences
     - Goals
     - Important values
     - Instructions 
-    
+
     Message:
     {last_user_message}
 
@@ -149,10 +153,10 @@ def replan_node(state: AgentState):
     human_prompt = HumanMessage(content=f"""
                                 User request:
                                 {state['question']}
-                                
+
                                 Broken query:
                                 {state['cypher']}
-                                
+
                                 Error:
                                 {state['error']}
                                 """)
@@ -161,7 +165,8 @@ def replan_node(state: AgentState):
 
     return {
         "cypher": response.content.strip(),
-        "error": None
+        "error": None,
+        "revision_count": state.get("revision_count", 0) + 1
     }
 
 
@@ -231,7 +236,8 @@ def synthesize_node(state: AgentState):
         if len(cypher_result) == 0:
             has_return = 'RETURN' in state.get('cypher', '').upper()
             if has_return and intent in ['ADD', 'UPDATE']:
-                failure_msg = AIMessage(content="The operation failed. The required related entities (like the customer, site, or item) could not be found in the database. Please verify they exist and try again.")
+                failure_msg = AIMessage(
+                    content="The operation failed. The required related entities (like the customer, site, or item) could not be found in the database. Please verify they exist and try again.")
                 return {
                     "messages": [failure_msg],
                 }
@@ -251,7 +257,8 @@ def synthesize_node(state: AgentState):
                     "messages": [success_response],
                 }
             else:
-                empty_response = AIMessage(content="I couldn't find any information matching your query in the database.")
+                empty_response = AIMessage(
+                    content="I couldn't find any information matching your query in the database.")
                 return {
                     "messages": [empty_response],
                 }
@@ -280,7 +287,7 @@ def synthesize_node(state: AgentState):
         content=f"""
     User request:
     {last_user_message}
-    
+
     Database result:
     {cypher_result_str}
 
@@ -299,7 +306,8 @@ def synthesize_node(state: AgentState):
         "messages": [response],
     }
 
-def add_node(state:AgentState):
+
+def add_node(state: AgentState):
     """Adds a new node to the graph"""
     print("start add")
     semantic_memory = state.get("semantic_memory", [])
@@ -329,6 +337,7 @@ def add_node(state:AgentState):
         "cypher": response.content.strip(),
     }
 
+
 def update_node(state: AgentState):
     """Updates an existing node in the graph"""
     semantic_memory = state.get("semantic_memory", [])
@@ -348,6 +357,7 @@ def update_node(state: AgentState):
     return {
         "cypher": response.content.strip(),
     }
+
 
 def inquire_node(state: AgentState):
     """Inquires about a node in the graph"""
@@ -374,6 +384,7 @@ def inquire_node(state: AgentState):
         "cypher": response.content.strip(),
     }
 
+
 def delete_node(state: AgentState):
     """Deletes a node from the graph"""
     semantic_memory = state.get("semantic_memory", [])
@@ -391,21 +402,23 @@ def delete_node(state: AgentState):
     """)
     response = llm.invoke([system_prompt, human_prompt])
     return {
-        "cypher":response.content.strip(),
+        "cypher": response.content.strip(),
     }
+
 
 def chitchat_node(state: AgentState):
     """Handles general conversational interaction without querying the database."""
     print("start chitchat")
-    
-    system_prompt = SystemMessage(content="You are a helpful and polite inventory management chatbot. The user is just chatting with you, greeting, or providing some information without asking for a database operation. Respond conversationally, acknowledge any facts they shared if relevant, and ask how you can help them with their inventory or sales orders. Do not mention databases or internal operations.")
+
+    system_prompt = SystemMessage(
+        content="You are a helpful and polite inventory management chatbot. The user is just chatting with you, greeting, or providing some information without asking for a database operation. Respond conversationally, acknowledge any facts they shared if relevant, and ask how you can help them with their inventory or sales orders. Do not mention databases or internal operations.")
     last_user_message = state["messages"][-1].content
     human_prompt = HumanMessage(content=last_user_message)
-    
+
     response = llm.invoke([system_prompt, human_prompt], config={"max_tokens": 150})
-    
+
     print("stop chitchat")
-    
+
     return {
         "messages": [response],
     }
